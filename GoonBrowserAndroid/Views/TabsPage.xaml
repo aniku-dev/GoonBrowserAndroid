@@ -11,6 +11,7 @@
                 Grid.Column="0"
                 Text="Tabs"
                 FontSize="24"
+                Margin="2,0,0,0"
                 VerticalOptions="Center"/>
             <Button
                 Grid.Column="2"
@@ -24,6 +25,7 @@
                 Grid.Column="3"
                 Text="+ Add Tab"
                 FontSize="16"
+
                 TextColor="#000"
                 BackgroundColor="#0f0"
                 Margin="5,0,0,0"
@@ -39,10 +41,10 @@
                 <DataTemplate>
                     <Grid ColumnDefinitions="*,Auto">
                         <Border
+                            Grid.Column="0"
                             Stroke="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}"
-                            StrokeShape="RoundRectangle 10">
+                            StrokeShape="RoundRectangle 10,0,10,0">
                             <Button
-                                Grid.Column="0"
                                 Text="{Binding Title}"
                                 FontSize="12"
                                 TextColor="{AppThemeBinding Light=#000, Dark=#fff}"
@@ -53,18 +55,21 @@
                                                   Path=BindingContext.SwitchTabCommand}"
                                 CommandParameter="{Binding}" />
                         </Border>
-                        <Button
+                        <Border
                             Grid.Column="1"
-                            Text="X"
-                            FontSize="16"
-                            FontAttributes="Bold"
-                            BackgroundColor="#f00"
-                            Margin="0,1,0,1"
-                            CornerRadius="10"
-                            HorizontalOptions="End"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                  Path=BindingContext.CloseTabCommand}"
-                            CommandParameter="{Binding}" />
+                            Stroke="#f00"
+                            StrokeShape="RoundRectangle 0,10,0,10">
+                            <Button
+                                Text="X"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                BackgroundColor="#f00"
+                                CornerRadius="0"
+                                HorizontalOptions="End"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
+                                      Path=BindingContext.CloseTabCommand}"
+                                CommandParameter="{Binding}" />
+                        </Border>
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

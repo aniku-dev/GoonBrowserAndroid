@@ -10,6 +10,7 @@
             Grid.Row="0"
             Source="{Binding TabService.SelectedTab.Url}"
             x:Name="BrowserView"
+            Navigating="BrowserView_Navigating"
             Navigated="BrowserView_Navigated">
         </WebView>
         <ScrollView

@@ -1,7 +1,8 @@
-﻿using GoonBrowserAndroid.Models;
-using GoonBrowserAndroid.ViewModels;
+﻿using GoonBrowserAndroid.AdBlock;
+using GoonBrowserAndroid.Models;
 using GoonBrowserAndroid.Services.Settings;
-using GoonBrowserAndroid.AdBlock;
+using GoonBrowserAndroid.ViewModels;
+using Microsoft.Maui.Controls.PlatformConfiguration;
 
 
 
@@ -22,18 +23,6 @@ public partial class WebviewPage : ContentPage
         SearchBar.Completed += OnSearchCompleted;
         webviewViewModel.TabService.TabChanged += LoadTab;
         LoadAdBlock();
-
-#if ANDROID
-        if (BrowserView.Handler?.PlatformView is Android.Webkit.WebView nativeWebView)
-        {
-            if (_settings.IsAdBlockingEnabled)
-            {
-                nativeWebView.SetWebViewClient(
-                    new AdBlockClient(_engine)
-                );
-            }
-        }
-#endif
     }
 
     // When the back button is pressed in the Android navbar,
@@ -60,6 +49,12 @@ public partial class WebviewPage : ContentPage
         }
     }
 
+    private async void BrowserView_Navigating(object sender, WebNavigatingEventArgs navigating)
+    {
+        var cosmeticScript = _engine.GetCosmeticScript();
+        await BrowserView.EvaluateJavaScriptAsync(cosmeticScript);
+    }
+
     // Pure MVVM attempts to implement this didn't work, but this does, hence why it's
     // implemented like this using code-behind.
     // Also doesn't update when simply navigating from page to page, this isn't a
@@ -70,6 +65,7 @@ public partial class WebviewPage : ContentPage
         {
             browserView.UrlInput = navigated.Url;
             browserView.TabService.SelectedTab.Url = navigated.Url;
+
             // set the title of the tab to the correct parametre instead of "Tab" every
             // ffffffFFFFUCKING TIME
             if (sender is WebView webView)
@@ -84,6 +80,9 @@ public partial class WebviewPage : ContentPage
                     // can be empty here, because if try fails then it does nothing
                 }
             }
+
+            var cosmeticScript = _engine.GetCosmeticScript();
+            await BrowserView.EvaluateJavaScriptAsync(cosmeticScript);
         }
     }
 
@@ -103,16 +102,24 @@ public partial class WebviewPage : ContentPage
         if (BrowserView.Handler?.PlatformView is Android.Webkit.WebView nativeWebView)
         {
             nativeWebView.Settings.JavaScriptEnabled = true;
-
-            nativeWebView.SetWebViewClient(
-                new AdBlockClient(_engine)
-            );
+            nativeWebView.SetWebViewClient(new AdBlockClient(_engine));
+            nativeWebView.SetWebChromeClient(new PopupBlockClient(_engine));
         }
     }
 #endif
 
     private async void LoadAdBlock()
     {
-        await _engine.UpdateListsAsync();
+        try
+        {
+            await _engine.UpdateListsAsync();
+        }
+        catch (HttpRequestException e)
+        {
+            await Shell.Current.DisplayAlertAsync(
+            "Ad-block list error",
+            $"Ad list update failed, cause: {e}",
+            "Understood");
+        }
     }
 }

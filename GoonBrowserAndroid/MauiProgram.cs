@@ -43,6 +43,7 @@ namespace GoonBrowserAndroid
             builder.Services.AddSingleton<ILongPressService, LongPressService>();
             builder.Services.AddSingleton<AdBlockClient>();
             builder.Services.AddSingleton<AdBlockEngine>();
+            builder.Services.AddSingleton<PopupBlockClient>();
 #endif
 
             // debugging block
