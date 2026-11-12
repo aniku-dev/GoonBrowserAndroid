@@ -1,7 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using GoonBrowserAndroid.Services.LongPress;
+using GoonBrowserAndroid.Models;
 using GoonBrowserAndroid.Services.Download;
+using GoonBrowserAndroid.Services.LongPress;
 using GoonBrowserAndroid.Services.Tab;
 using GoonBrowserAndroid.Views;
 using System.Windows.Input;
@@ -16,19 +17,6 @@ namespace GoonBrowserAndroid.ViewModels
         private readonly ITabService _tabService;
         public ITabService TabService => _tabService;
 
-        // let's add some silly tacit ass links cuz y not :p
-        private static readonly string[] startUrls =
-        {
-            "https://www.youtube.com/watch?v=TLselMX7RsM",
-            "https://www.onlyfans.com/anna_himejima",
-            "https://www.onlyfans.com/mommy-anna",
-            "https://www.youtube.com/watch?v=1QWLek3lodI",
-            "https://www.youtube.com/watch?v=W3xOTV40GSc",
-            "https://www.youtube.com/watch?v=W3xOTV40GSc?t=236",
-        };
-
-        // properties
-        [ObservableProperty] string urlSource = startUrls[Random.Shared.Next(startUrls.Length)];
         [ObservableProperty] string urlInput;
 
         // buttons

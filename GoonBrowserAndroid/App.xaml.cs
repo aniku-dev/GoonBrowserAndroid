@@ -21,7 +21,7 @@
  * - Tabs COMP
  * - Inspect element
  * - Hold for actions popup WIP
- * - Ad-blocking
+ * - Ad-blocking COMP
  * - Multi-language support
  * 
  * TODO issues:

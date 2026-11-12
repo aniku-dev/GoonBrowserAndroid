@@ -1,12 +1,15 @@
 ﻿using CommunityToolkit.Maui;
-using GoonBrowserAndroid.Services.LongPress;
+using GoonBrowserAndroid.AdBlock;
 using GoonBrowserAndroid.Services.Download;
+using GoonBrowserAndroid.Services.LongPress;
 using GoonBrowserAndroid.Services.Settings;
 using GoonBrowserAndroid.Services.Tab;
 using GoonBrowserAndroid.ViewModels;
 using GoonBrowserAndroid.Views;
 using Microsoft.Extensions.Logging;
-using GoonBrowserAndroid.AdBlock;
+#if ANDROID
+using GoonBrowserAndroid.Platforms.Handlers;
+#endif
 
 namespace GoonBrowserAndroid
 {
@@ -22,8 +25,15 @@ namespace GoonBrowserAndroid
                     fonts.AddFont("Ubuntu-Regular.ttf", "UbuntuRegular");
                     fonts.AddFont("Ubuntu-Bold.ttf", "UbuntuBold");
                 })
-                .UseMauiCommunityToolkit();
-
+                .UseMauiCommunityToolkit()
+                .ConfigureMauiHandlers(handlers =>
+                {
+                #if ANDROID
+                    handlers.AddHandler<
+                        Microsoft.Maui.Controls.WebView,
+                        BrowserWebViewHandler>();
+                #endif
+                });
             // Views
             builder.Services.AddSingleton<WebviewPage>();
             builder.Services.AddSingleton<SettingsPage>();
