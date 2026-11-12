@@ -18,11 +18,43 @@ namespace GoonBrowserAndroid.Services.Download
         // conform to the coding conventions better
         public async Task DownloadAsync(string url)
         {
-            var fileName = Path.GetFileName(new Uri(url).LocalPath);
+            using var response = await _httpClient.GetAsync(
+                url,
+                HttpCompletionOption.ResponseHeadersRead);
 
+            response.EnsureSuccessStatusCode();
+
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+
+            // Try to get filename from Content-Disposition
+            var fileName = response.Content.Headers.ContentDisposition?
+                .FileNameStar?
+                .Trim('"');
+
+            fileName ??= response.Content.Headers.ContentDisposition?
+                .FileName?
+                .Trim('"');
+
+            // Fall back to URL filename
             if (string.IsNullOrWhiteSpace(fileName))
             {
-                fileName = Guid.NewGuid().ToString();
+                fileName = Path.GetFileName(
+                    new Uri(response.RequestMessage?.RequestUri?.ToString() ?? url).LocalPath);
+            }
+
+            // Determine extension from MIME type if missing
+            if (string.IsNullOrWhiteSpace(Path.GetExtension(fileName)))
+            {
+                var extension = GetExtensionFromMimeType(contentType);
+
+                if (string.IsNullOrWhiteSpace(extension))
+                {
+                    extension = ".bin";
+                }
+
+                fileName = (string.IsNullOrWhiteSpace(fileName)
+                    ? Guid.NewGuid().ToString()
+                    : fileName) + extension;
             }
 
             var context = Platform.AppContext;
@@ -30,40 +62,41 @@ namespace GoonBrowserAndroid.Services.Download
             var values = new ContentValues();
 
             values.Put(MediaStore.IMediaColumns.DisplayName, fileName);
-            values.Put(MediaStore.IMediaColumns.MimeType, GetMimeType(fileName));
+            values.Put(
+                MediaStore.IMediaColumns.MimeType,
+                contentType ?? GetMimeType(fileName));
 
             if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
             {
-                values.Put(MediaStore.IMediaColumns.RelativePath, Android.OS.Environment.DirectoryDownloads);
+                values.Put(
+                    MediaStore.IMediaColumns.RelativePath,
+                    Android.OS.Environment.DirectoryDownloads);
             }
 
-            // place for where to save the file
             var uri = context.ContentResolver.Insert(
                 MediaStore.Downloads.ExternalContentUri,
                 values);
 
-            // if uri is null, cry about it
             if (uri == null)
             {
                 throw new Exception("Failed to create download");
             }
 
-            // download from internet (so epic and LEGENDARY)
-            using var response = await _httpClient.GetAsync(
-                url,
-                HttpCompletionOption.ResponseHeadersRead);
+            try
+            {
+                await using var input = await response.Content.ReadAsStreamAsync();
 
-            response.EnsureSuccessStatusCode();
+                await using var output =
+                    context.ContentResolver.OpenOutputStream(uri)
+                    ?? throw new Exception("Unable to open output stream");
 
-            await using var input = await response.Content.ReadAsStreamAsync();
-
-            // open destination file for writing
-            await using var output = context.ContentResolver.OpenOutputStream(uri)
-            // or else throw exception
-            ?? throw new Exception("Unable to open output stream");
-
-            // copy downloaded bytes into the file
-            await input.CopyToAsync(output);
+                await input.CopyToAsync(output);
+            }
+            catch
+            {
+                context.ContentResolver.Delete(uri, null, null);
+                throw;
+            }
         }
 
         private static string GetMimeType(string fileName)
@@ -79,6 +112,31 @@ namespace GoonBrowserAndroid.Services.Download
             var mime = Android.Webkit.MimeTypeMap.Singleton?.GetMimeTypeFromExtension(extension.ToLowerInvariant());
 
             return mime ?? "application/octet-stream";
+        }
+
+        private static string? GetExtensionFromMimeType(string? mimeType)
+        {
+            if (string.IsNullOrWhiteSpace(mimeType))
+            {
+                return null;
+            }
+
+            return mimeType.ToLowerInvariant() switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                "image/gif" => ".gif",
+                "image/svg+xml" => ".svg",
+                "image/bmp" => ".bmp",
+                "image/avif" => ".avif",
+                "application/pdf" => ".pdf",
+                "text/plain" => ".txt",
+                "application/zip" => ".zip",
+                "video/mp4" => ".mp4",
+                "audio/mpeg" => ".mp3",
+                _ => null
+            };
         }
     }
 }
